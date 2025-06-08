@@ -19,8 +19,8 @@ A Spring Boot application that leverages AI capabilities for educational search 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/eduSearchAi.git
-cd eduSearchAi
+git clone https://github.com/yourusername/edu-search-ai.git
+cd edu-search-ai
 ```
 
 2. Configure your OpenAI API key:
@@ -36,6 +36,24 @@ mvn clean install
 ```bash
 mvn spring-boot:run
 ```
+
+## Example Usage
+
+Here's an example of how EduSearch AI processes and responds to queries about educational content:
+
+**Input Query:**
+```
+What is recommend amount of water I should drink given the swiss nutrition pyramid?
+```
+
+**System Response:**
+The recommended amount of water you should drink according to the Swiss nutrition pyramid is 1 to 2 liters of non-sugary beverages each day, with a preference for water. This includes options like tap water, mineral water, or herbal and fruit teas (Source: Recommandations-nutritionnelles_version-longue_F.pdf).
+
+The system processes the query by:
+1. Analyzing the question using AI
+2. Searching through the document database
+3. Finding relevant information in the Swiss nutrition pyramid document
+4. Providing a clear, concise answer with the source reference
 
 ## Project Structure
 
