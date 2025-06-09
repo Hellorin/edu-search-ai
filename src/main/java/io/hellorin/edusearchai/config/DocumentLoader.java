@@ -1,5 +1,6 @@
 package io.hellorin.edusearchai.config;
 
+import io.hellorin.edusearchai.repository.InMemoryNotesDocumentRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
@@ -8,8 +9,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.mock.web.MockMultipartFile;
 import io.hellorin.edusearchai.service.PDFProcessingService;
 import io.hellorin.edusearchai.repository.InMemoryDocumentRepository;
-import io.hellorin.edusearchai.repository.InMemoryNotesDocumentRepository;
 import io.hellorin.edusearchai.model.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,16 +27,17 @@ import java.util.List;
  * </ul>
  */
 public class DocumentLoader implements CommandLineRunner {
+    private static final Logger logger = LoggerFactory.getLogger(DocumentLoader.class);
     private final PDFProcessingService pdfProcessingService;
-    private final InMemoryDocumentRepository documentRepository;
+    private final InMemoryDocumentRepository inMemoryDocumentRepository;
     private final InMemoryNotesDocumentRepository inMemoryNotesDocumentRepository;
     private final ResourcePatternResolver resolver;
 
     public DocumentLoader(PDFProcessingService pdfProcessingService, 
-                         InMemoryDocumentRepository documentRepository,
+                          InMemoryDocumentRepository inMemoryDocumentRepository,
                           InMemoryNotesDocumentRepository inMemoryNotesDocumentRepository) {
         this.pdfProcessingService = pdfProcessingService;
-        this.documentRepository = documentRepository;
+        this.inMemoryDocumentRepository = inMemoryDocumentRepository;
         this.inMemoryNotesDocumentRepository = inMemoryNotesDocumentRepository;
         this.resolver = new PathMatchingResourcePatternResolver();
     }
@@ -65,25 +68,24 @@ public class DocumentLoader implements CommandLineRunner {
         }
         
         if (!files.isEmpty()) {
-            System.out.println("Loading " + files.size() + " PDF documents from " + folderPath + "...");
+            logger.info("Loading {} PDF documents from {}...", files.size(), folderPath);
             List<Document> processedDocs = pdfProcessingService.processPDFs(files);
-            System.out.println("Documents loaded successfully from " + folderPath + "!");
+            logger.info("Documents loaded successfully from {}!", folderPath);
             
             // Print document information
             for (Document doc : processedDocs) {
-                System.out.println("Loaded document: " + doc.getSource() + 
-                                 " (ID: " + doc.getId() + ")");
+                logger.info("Loaded document: {} (ID: {})", doc.getSource(), doc.getId());
             }
             return processedDocs;
         } else {
-            System.out.println("No PDF documents found in " + folderPath + " folder.");
+            logger.info("No PDF documents found in {} folder.", folderPath);
             return new ArrayList<>();
         }
     }
 
     /**
      * Executes during application startup to load and process PDF documents.
-     * Loads documents from public, courses, and notes folders, processes them,
+     * Loads documents from public, private, and protected folders, processes them,
      * and stores them in their respective repositories.
      *
      * @param args Command line arguments (not used)
@@ -97,39 +99,29 @@ public class DocumentLoader implements CommandLineRunner {
             List<Document> standardDocs = new ArrayList<>();
             
             for (String folder : standardFolders) {
-                try {
-                    List<Document> folderDocs = loadFolder(folder);
-                    standardDocs.addAll(folderDocs);
-                } catch (IOException e) {
-                    System.err.println("Error loading documents from " + folder + ": " + e.getMessage());
-                }
+                List<Document> folderDocs = loadFolder(folder);
+                standardDocs.addAll(folderDocs);
             }
-
+            
+            // Load notes documents
+            List<Document> notesDocs = loadFolder("documents/notes");
+            
             // Save documents to appropriate repositories
             if (!standardDocs.isEmpty()) {
-                documentRepository.saveAll(standardDocs);
+                inMemoryDocumentRepository.saveAll(standardDocs);
             }
-
-            // Load notes documents
-            List<Document> notesDocs = new ArrayList<>();
-            try {
-                notesDocs = loadFolder("documents/notes");
-            } catch (IOException e) {
-                System.err.println("Error loading notes documents: " + e.getMessage());
-            }
-
             if (!notesDocs.isEmpty()) {
                 inMemoryNotesDocumentRepository.saveAll(notesDocs);
             }
             
             // Print repository status
-            System.out.println("\nRepository Status:");
-            System.out.println("Total standard documents: " + documentRepository.size());
-            System.out.println("Total notes documents: " + inMemoryNotesDocumentRepository.size());
+            logger.info("\nRepository Status:");
+            logger.info("Total standard documents: {}", inMemoryDocumentRepository.size());
+            logger.info("Total notes documents: {}", inMemoryNotesDocumentRepository.size());
             
         } catch (Exception e) {
-            System.err.println("Error in document loading process: " + e.getMessage());
-            e.printStackTrace();
+            logger.error("Error in document loading process: {}", e.getMessage(), e);
+            System.exit(1);
         }
     }
 } 

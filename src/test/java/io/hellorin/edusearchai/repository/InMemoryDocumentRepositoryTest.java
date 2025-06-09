@@ -1,8 +1,11 @@
 package io.hellorin.edusearchai.repository;
 
+import io.hellorin.edusearchai.component.MathComponent;
 import io.hellorin.edusearchai.model.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
 import java.util.Arrays;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,7 +19,9 @@ class InMemoryDocumentRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        repository = new InMemoryDocumentRepository();
+        MathComponent mathComponent = Mockito.mock(MathComponent.class);
+        Mockito.when(mathComponent.cosineSimilarity(Mockito.anyList(), Mockito.anyList())).thenCallRealMethod();
+        repository = new InMemoryDocumentRepository(mathComponent);
         
         // Create test documents with embeddings
         doc1 = new Document();

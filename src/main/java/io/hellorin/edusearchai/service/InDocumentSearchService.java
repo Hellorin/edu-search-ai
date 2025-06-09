@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -59,7 +60,7 @@ public class InDocumentSearchService {
 
     private String getCourseContentResponse(String query, List<Document> relevantDocs) {
         String context = relevantDocs.stream()
-                .map(doc -> String.format("Title: %s\nSource: %s\nContent: %s", 
+                .map(doc -> String.format("Title: %s%nSource: %s%nContent: %s",
                     doc.getTitle(), doc.getSource(), doc.getContent()))
                 .collect(Collectors.joining("\n\n"));
 
@@ -98,15 +99,15 @@ public class InDocumentSearchService {
                 "message", message
         ));
 
-        String response = ChatClient.builder(chatModel).build().prompt(sorryPrompt)
-                .call().content();
+        var response = Optional.ofNullable(ChatClient.builder(chatModel).build().prompt(sorryPrompt)
+                .call().content());
                 
-        return !response.contains("<SORRY>");
+        return response.map(r -> !r.contains("<SORRY>")).orElse(false);
     }
 
     private String getSidenotesResponse(String courseContent, List<Document> relevantNoteDocs) {
         String sidenotes = relevantNoteDocs.stream()
-                .map(doc -> String.format("Title: %s\nSource: %s\nContent: %s",
+                .map(doc -> String.format("Title: %s%nSource: %s%nContent: %s",
                         doc.getTitle(), doc.getSource(), doc.getContent()))
                 .collect(Collectors.joining("\n\n"));
 
