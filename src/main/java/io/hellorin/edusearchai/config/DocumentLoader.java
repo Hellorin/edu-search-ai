@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.mock.web.MockMultipartFile;
 import io.hellorin.edusearchai.service.PDFProcessingService;
 import io.hellorin.edusearchai.repository.InMemoryDocumentRepository;
+import io.hellorin.edusearchai.repository.InMemoryNotesDocumentRepository;
 import io.hellorin.edusearchai.model.Document;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -20,18 +21,21 @@ import java.util.List;
  *     <li>Scanning designated folders for PDF files</li>
  *     <li>Converting found PDFs into MultipartFile objects</li>
  *     <li>Processing the PDFs using PDFProcessingService</li>
- *     <li>Storing the processed documents in the document repository</li>
+ *     <li>Storing the processed documents in the appropriate document repository</li>
  * </ul>
  */
 public class DocumentLoader implements CommandLineRunner {
     private final PDFProcessingService pdfProcessingService;
     private final InMemoryDocumentRepository documentRepository;
+    private final InMemoryNotesDocumentRepository inMemoryNotesDocumentRepository;
     private final ResourcePatternResolver resolver;
 
     public DocumentLoader(PDFProcessingService pdfProcessingService, 
-                         InMemoryDocumentRepository documentRepository) {
+                         InMemoryDocumentRepository documentRepository,
+                          InMemoryNotesDocumentRepository inMemoryNotesDocumentRepository) {
         this.pdfProcessingService = pdfProcessingService;
         this.documentRepository = documentRepository;
+        this.inMemoryNotesDocumentRepository = inMemoryNotesDocumentRepository;
         this.resolver = new PathMatchingResourcePatternResolver();
     }
 
@@ -78,13 +82,9 @@ public class DocumentLoader implements CommandLineRunner {
     }
 
     /**
-     * Spring Boot CommandLineRunner implementation that executes during application startup.
-     * This method:
-     * <ul>
-     *     <li>Scans both private and public document folders</li>
-     *     <li>Processes all found PDF documents</li>
-     *     <li>Reports the total number of documents loaded</li>
-     * </ul>
+     * Executes during application startup to load and process PDF documents.
+     * Loads documents from public, courses, and notes folders, processes them,
+     * and stores them in their respective repositories.
      *
      * @param args Command line arguments (not used)
      * @throws Exception if there are any issues during the loading process
@@ -92,22 +92,40 @@ public class DocumentLoader implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         try {
-            List<String> folders = List.of("privatedocuments", "publicdocuments"); // Add more folders as needed
-            List<Document> allProcessedDocs = new ArrayList<>();
+            // Load public and courses documents
+            List<String> standardFolders = List.of("documents/public", "documents/courses");
+            List<Document> standardDocs = new ArrayList<>();
             
-            for (String folder : folders) {
+            for (String folder : standardFolders) {
                 try {
                     List<Document> folderDocs = loadFolder(folder);
-                    allProcessedDocs.addAll(folderDocs);
+                    standardDocs.addAll(folderDocs);
                 } catch (IOException e) {
                     System.err.println("Error loading documents from " + folder + ": " + e.getMessage());
                 }
             }
+
+            // Save documents to appropriate repositories
+            if (!standardDocs.isEmpty()) {
+                documentRepository.saveAll(standardDocs);
+            }
+
+            // Load notes documents
+            List<Document> notesDocs = new ArrayList<>();
+            try {
+                notesDocs = loadFolder("documents/notes");
+            } catch (IOException e) {
+                System.err.println("Error loading notes documents: " + e.getMessage());
+            }
+
+            if (!notesDocs.isEmpty()) {
+                inMemoryNotesDocumentRepository.saveAll(notesDocs);
+            }
             
             // Print repository status
             System.out.println("\nRepository Status:");
-            System.out.println("Total documents in repository: " + 
-                documentRepository.size());
+            System.out.println("Total standard documents: " + documentRepository.size());
+            System.out.println("Total notes documents: " + inMemoryNotesDocumentRepository.size());
             
         } catch (Exception e) {
             System.err.println("Error in document loading process: " + e.getMessage());

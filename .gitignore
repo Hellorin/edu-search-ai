@@ -71,4 +71,5 @@ application-dev.properties
 Thumbs.db
 
 ## Documents library (not free to use)
-src/main/resources/privatedocuments/
+src/main/resources/documents/courses
+src/main/resources/documents/notes
