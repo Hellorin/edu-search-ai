@@ -10,6 +10,11 @@ A Spring Boot application that leverages AI capabilities for educational search 
 - Vector store support for efficient content retrieval
 - Smart sidenotes integration that combines course content with student notes
 - Intelligent document chunking for better search results
+- **Document Search**: Search through course documents, notes, and objectives using natural language queries
+- **Vector Search**: Find semantically similar content using OpenAI embeddings
+- **Objectives Analysis**: Perform vector search for each objective point against course content
+- **Multi-document Support**: Handles PDF documents from different categories (courses, notes, objectives)
+- **API Documentation**: Interactive Swagger UI for exploring and testing the API
 
 ## Prerequisites
 
@@ -38,6 +43,36 @@ mvn clean install
 ```bash
 mvn spring-boot:run
 ```
+
+5. Access the Swagger UI:
+   - Open your browser and navigate to: `http://localhost:8080/swagger-ui.html`
+   - This provides an interactive interface to explore and test all API endpoints
+
+## API Documentation
+
+### Swagger UI
+The application includes comprehensive API documentation powered by Swagger/OpenAPI 3. Once the application is running, you can access the interactive API documentation at:
+
+- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
+- **OpenAPI JSON**: `http://localhost:8080/api-docs`
+
+The Swagger UI provides:
+- Interactive API exploration
+- Request/response examples
+- Parameter validation
+- Try-it-out functionality for testing endpoints
+- Detailed documentation for each endpoint
+
+### API Endpoints Overview
+
+The following endpoints are available and documented in Swagger:
+
+#### Document Search Endpoints
+1. **POST /api/search/query** - Search documents and get AI-generated answers
+
+#### Objectives Endpoints
+1. **POST /api/objectives/search** - Search objectives against course documents  
+2. **GET /api/objectives/list** - Get available objective documents
 
 ## Example Usage
 
@@ -74,6 +109,8 @@ eduSearchAi/
 │   │   ├── java/
 │   │   │   └── io/hellorin/edusearchai/
 │   │   │       ├── controller/    # REST API endpoints and request handling
+│   │   │       │   ├── InDocumentSearchController.java  # Document search endpoints
+│   │   │       │   └── ObjectivesController.java        # Objectives-specific endpoints
 │   │   │       ├── service/       # Business logic implementation
 │   │   │       ├── repository/    # Data access layer
 │   │   │       ├── model/         # Data models and entities
@@ -84,6 +121,7 @@ eduSearchAi/
 │   │       └── documents/    # Directory for storing PDF documents
 │   │           ├── courses/     # Course-related PDF documents
 │   │           ├── notes/       # Study notes and supplementary materials
+│   │           ├── objectives/  # Course objectives documents
 │   │           └── public/      # Publicly accessible PDF documents
 ├── pom.xml              # Maven configuration
 └── README.md           # This file
@@ -115,3 +153,87 @@ mvn test
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## API Endpoints
+
+### Document Search Endpoints
+
+#### 1. General Document Search
+```
+POST /api/search/query
+Content-Type: application/json
+
+{
+  "query": "your search query here"
+}
+```
+Returns AI-generated answers based on relevant document content.
+
+### Objectives Endpoints
+
+#### 1. Objectives Vector Search
+```
+POST /api/objectives/search
+Content-Type: text/plain
+
+"weekend1.pdf"
+```
+Performs vector search for each objective point in the specified objective document against course documents. Returns structured results showing which course content is most relevant to each objective.
+
+#### 2. List Available Objectives
+```
+GET /api/objectives/list
+```
+Returns a list of all available objective documents that can be searched.
+
+## How Objectives Search Works
+
+1. **Document Parsing**: The system parses objective documents into individual objective points using pattern recognition (numbered lists, bullet points, keywords)
+2. **Vector Embedding**: Each objective point is converted into a vector embedding using OpenAI's embedding model
+3. **Similarity Search**: The system finds the most similar course content for each objective point using cosine similarity
+4. **Structured Results**: Returns a detailed breakdown showing each objective point and its relevant course content
+
+## Setup
+
+1. Ensure you have the required environment variables for OpenAI API access
+2. Place your PDF documents in the appropriate folders:
+   - `src/main/resources/documents/public/` - Public course documents
+   - `src/main/resources/documents/courses/` - Course materials
+   - `src/main/resources/documents/notes/` - Student notes
+   - `src/main/resources/documents/objectives/` - Course objectives
+3. Run the application - documents will be automatically loaded and processed
+
+## Example Usage
+
+### Search for a specific topic:
+```bash
+curl -X POST http://localhost:8080/api/search/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What are the main principles of nutrition?"}'
+```
+
+### Analyze objectives against courses:
+```bash
+curl -X POST http://localhost:8080/api/objectives/search \
+  -H "Content-Type: text/plain" \
+  -d "weekend1.pdf"
+```
+
+### List available objectives:
+```bash
+curl http://localhost:8080/api/objectives/list
+```
+
+## Architecture
+
+- **Controllers**: Handle HTTP requests and responses
+  - `InDocumentSearchController`: Manages general document search operations
+  - `ObjectivesController`: Manages objectives-specific operations
+- **Services**: Implement business logic
+  - `InDocumentSearchService`: Handles document search and AI answer generation
+  - `ObjectivesService`: Manages objectives analysis and processing
+- **Repositories**: Data access layer for different document types
+- **Models**: Data structures and entities
+- **Configuration**: Application setup and document loading
+
+The application follows a clean architecture pattern with clear separation of concerns between controllers, services, and repositories.

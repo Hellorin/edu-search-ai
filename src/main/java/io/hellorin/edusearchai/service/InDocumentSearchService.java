@@ -52,7 +52,9 @@ public class InDocumentSearchService {
             // Get sidenotes response
             String sidenotesContent = getSidenotesResponse(courseContent, relevantNoteDocs);
             
-            return courseContent + "\n\n" + sidenotesContent;
+            String combinedResponse = courseContent + "\n\n" + sidenotesContent;
+            
+            return combinedResponse;
         } else {
             return courseContent;
         }

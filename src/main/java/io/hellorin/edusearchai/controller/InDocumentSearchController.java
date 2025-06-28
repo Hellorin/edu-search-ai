@@ -1,6 +1,15 @@
 package io.hellorin.edusearchai.controller;
 
+import io.hellorin.edusearchai.model.SearchRequest;
+import io.hellorin.edusearchai.model.SearchResponse;
 import io.hellorin.edusearchai.service.InDocumentSearchService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/search")
+@Tag(name = "Document Search", description = "APIs for searching and querying educational documents")
 public class InDocumentSearchController {
 
     private final InDocumentSearchService inDocumentSearchService;
@@ -23,18 +33,46 @@ public class InDocumentSearchController {
     /**
      * Endpoint to search within documents and get answers based on the provided query.
      *
-     * @param query The search query string to look for in the documents
+     * @param searchRequest The search request containing the query
      * @return ResponseEntity containing either:
      *         - The answer to the query if successful
      *         - A bad request response if the query is empty or null
      */
     @PostMapping("/query")
-    public ResponseEntity<String> searchInDocuments(@RequestBody String query) {
-        if (query == null || query.trim().isEmpty()) {
+    @Operation(
+        summary = "Search documents and get AI-generated answers",
+        description = "Searches through all available educational documents and returns an AI-generated answer based on the provided query."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Successfully retrieved answer",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = SearchResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Bad request - query is empty or null",
+            content = @Content(
+                mediaType = "text/plain",
+                schema = @Schema(example = "Query cannot be empty")
+            )
+        )
+    })
+    public ResponseEntity<?> searchInDocuments(
+            @Parameter(
+                description = "Search request containing the query",
+                required = true
+            )
+            @RequestBody SearchRequest searchRequest) {
+        if (!searchRequest.isValid()) {
             return ResponseEntity.badRequest().body("Query cannot be empty");
         }
 
-        String answer = inDocumentSearchService.searchAndAnswer(query);
-        return ResponseEntity.ok(answer);
+        String answer = inDocumentSearchService.searchAndAnswer(searchRequest.getQuery());
+        var response = new SearchResponse(answer, searchRequest.getQuery());
+        return ResponseEntity.ok(response);
     }
 } 

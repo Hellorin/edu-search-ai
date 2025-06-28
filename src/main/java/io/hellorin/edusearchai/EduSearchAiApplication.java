@@ -1,6 +1,7 @@
 package io.hellorin.edusearchai;
 
 import io.hellorin.edusearchai.repository.InMemoryNotesDocumentRepository;
+import io.hellorin.edusearchai.repository.InMemoryCourseObjectivesDocumentRepository;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -17,7 +18,8 @@ public class EduSearchAiApplication {
     @Bean
     public DocumentLoader documentLoader(PDFProcessingService pdfProcessingService, 
                                        InMemoryDocumentRepository documentRepository,
-                                       InMemoryNotesDocumentRepository inMemoryNotesDocumentRepository) {
-        return new DocumentLoader(pdfProcessingService, documentRepository, inMemoryNotesDocumentRepository);
+                                       InMemoryNotesDocumentRepository inMemoryNotesDocumentRepository,
+                                       InMemoryCourseObjectivesDocumentRepository inMemoryCourseObjectivesDocumentRepository) {
+        return new DocumentLoader(pdfProcessingService, documentRepository, inMemoryNotesDocumentRepository, inMemoryCourseObjectivesDocumentRepository);
     }
 } 

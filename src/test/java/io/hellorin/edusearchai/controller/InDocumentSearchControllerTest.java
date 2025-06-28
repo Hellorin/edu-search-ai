@@ -1,5 +1,7 @@
 package io.hellorin.edusearchai.controller;
 
+import io.hellorin.edusearchai.model.SearchRequest;
+import io.hellorin.edusearchai.model.SearchResponse;
 import io.hellorin.edusearchai.service.InDocumentSearchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,7 +10,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class InDocumentSearchControllerTest {
@@ -27,26 +29,30 @@ class InDocumentSearchControllerTest {
     @Test
     void searchInDocuments_WithValidQuery_ReturnsSuccessResponse() {
         // Arrange
-        String query = "test query";
+        var searchRequest = new SearchRequest("test query");
         String expectedAnswer = "This is a test answer";
-        when(inDocumentSearchService.searchAndAnswer(query)).thenReturn(expectedAnswer);
+        when(inDocumentSearchService.searchAndAnswer("test query")).thenReturn(expectedAnswer);
 
         // Act
-        ResponseEntity<String> response = inDocumentSearchController.searchInDocuments(query);
+        ResponseEntity<?> response = inDocumentSearchController.searchInDocuments(searchRequest);
 
         // Assert
         assertEquals(200, response.getStatusCode().value());
-        assertEquals(expectedAnswer, response.getBody());
-        verify(inDocumentSearchService, times(1)).searchAndAnswer(query);
+        assertTrue(response.getBody() instanceof SearchResponse);
+        var searchResponse = (SearchResponse) response.getBody();
+        assertEquals(expectedAnswer, searchResponse.getAnswer());
+        assertEquals("test query", searchResponse.getQuery());
+        assertNotNull(searchResponse.getTimestamp());
+        verify(inDocumentSearchService, times(1)).searchAndAnswer("test query");
     }
 
     @Test
     void searchInDocuments_WithEmptyQuery_ReturnsBadRequest() {
         // Arrange
-        String query = "";
+        var searchRequest = new SearchRequest("");
 
         // Act
-        ResponseEntity<String> response = inDocumentSearchController.searchInDocuments(query);
+        ResponseEntity<?> response = inDocumentSearchController.searchInDocuments(searchRequest);
 
         // Assert
         assertEquals(400, response.getStatusCode().value());
@@ -56,8 +62,11 @@ class InDocumentSearchControllerTest {
 
     @Test
     void searchInDocuments_WithNullQuery_ReturnsBadRequest() {
+        // Arrange
+        var searchRequest = new SearchRequest(null);
+
         // Act
-        ResponseEntity<String> response = inDocumentSearchController.searchInDocuments(null);
+        ResponseEntity<?> response = inDocumentSearchController.searchInDocuments(searchRequest);
 
         // Assert
         assertEquals(400, response.getStatusCode().value());
