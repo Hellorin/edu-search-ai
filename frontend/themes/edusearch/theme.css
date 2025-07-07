@@ -1,0 +1,253 @@
+/* EduSearch AI Theme */
+
+/* Global styling improvements */
+:root {
+  --lumo-primary-color: #1976d2;
+  --lumo-primary-color-50pct: rgba(25, 118, 210, 0.5);
+  --lumo-primary-color-10pct: rgba(25, 118, 210, 0.1);
+  --lumo-primary-text-color: #1976d2;
+  --lumo-success-color: #28a745;
+  --lumo-error-color: #dc3545;
+  --lumo-warning-color: #ffc107;
+  --lumo-border-radius-m: 8px;
+  --lumo-border-radius-l: 12px;
+  --lumo-font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* Dashboard specific styling */
+.dashboard-view {
+  background: linear-gradient(135deg, var(--lumo-contrast-5pct) 0%, var(--lumo-primary-color-10pct) 100%);
+}
+
+.dashboard-view h1 {
+  background: linear-gradient(45deg, var(--lumo-primary-color), var(--lumo-primary-color-50pct));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+}
+
+/* Card hover effects */
+.dashboard-view vaadin-vertical-layout[class*="background-contrast-5"] {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.dashboard-view vaadin-vertical-layout[class*="background-contrast-5"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Search view styling */
+.search-view .search-card {
+  background: linear-gradient(135deg, white 0%, var(--lumo-contrast-5pct) 100%);
+  border: 1px solid var(--lumo-contrast-10pct);
+}
+
+.search-view .result-card {
+  transition: all 0.2s ease;
+  border: 1px solid var(--lumo-contrast-10pct);
+}
+
+.search-view .result-card:hover {
+  border-color: var(--lumo-primary-color-50pct);
+  box-shadow: 0 4px 20px rgba(25, 118, 210, 0.1);
+}
+
+/* Upload view styling */
+.upload-view vaadin-upload {
+  border: 2px dashed var(--lumo-contrast-20pct);
+  border-radius: var(--lumo-border-radius-l);
+  background: var(--lumo-contrast-5pct);
+  transition: all 0.3s ease;
+}
+
+.upload-view vaadin-upload:hover {
+  border-color: var(--lumo-primary-color);
+  background: var(--lumo-primary-color-10pct);
+}
+
+.upload-view vaadin-upload[dragover] {
+  border-color: var(--lumo-success-color);
+  background: var(--lumo-success-color-10pct);
+}
+
+/* Documents view styling */
+.documents-view vaadin-grid {
+  border-radius: var(--lumo-border-radius-l);
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.documents-view vaadin-grid::part(row):hover {
+  background: var(--lumo-primary-color-10pct);
+}
+
+/* Navigation improvements */
+vaadin-app-layout vaadin-side-nav-item {
+  transition: all 0.2s ease;
+}
+
+vaadin-app-layout vaadin-side-nav-item:hover {
+  background: var(--lumo-primary-color-10pct);
+  transform: translateX(4px);
+}
+
+vaadin-app-layout vaadin-side-nav-item[current] {
+  background: var(--lumo-primary-color-10pct);
+  border-right: 3px solid var(--lumo-primary-color);
+}
+
+/* Button enhancements */
+vaadin-button[theme~="primary"] {
+  background: linear-gradient(45deg, var(--lumo-primary-color), #1565c0);
+  border: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+vaadin-button[theme~="primary"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(25, 118, 210, 0.3);
+}
+
+vaadin-button[theme~="tertiary"] {
+  transition: all 0.2s ease;
+}
+
+vaadin-button[theme~="tertiary"]:hover {
+  background: var(--lumo-contrast-10pct);
+}
+
+/* Form field improvements */
+vaadin-text-field, vaadin-text-area, vaadin-select {
+  --lumo-text-field-size: 2.5rem;
+}
+
+vaadin-text-field:focus-within, vaadin-text-area:focus-within, vaadin-select:focus-within {
+  box-shadow: 0 0 0 3px var(--lumo-primary-color-10pct);
+}
+
+/* Progress bar styling */
+vaadin-progress-bar {
+  --lumo-primary-color: var(--lumo-success-color);
+}
+
+/* Badge and status styling */
+.status-badge {
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Animation keyframes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Apply animations */
+.dashboard-view > * {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+.search-view .result-card {
+  animation: slideInRight 0.4s ease forwards;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .dashboard-view vaadin-horizontal-layout {
+    flex-direction: column;
+  }
+  
+  .search-view vaadin-horizontal-layout {
+    flex-direction: column;
+  }
+  
+  .upload-view vaadin-horizontal-layout {
+    flex-direction: column;
+  }
+}
+
+/* Dark theme adjustments */
+html[theme~="dark"] {
+  --lumo-primary-color: #42a5f5;
+}
+
+html[theme~="dark"] .dashboard-view {
+  background: linear-gradient(135deg, var(--lumo-shade-5pct) 0%, var(--lumo-primary-color-10pct) 100%);
+}
+
+/* Loading states */
+.loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Icon enhancements */
+vaadin-icon {
+  transition: all 0.2s ease;
+}
+
+vaadin-button:hover vaadin-icon {
+  transform: scale(1.1);
+}
+
+/* Notification styling */
+vaadin-notification-card {
+  border-radius: var(--lumo-border-radius-l);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--lumo-contrast-10pct);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--lumo-contrast-30pct);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--lumo-contrast-40pct);
+}

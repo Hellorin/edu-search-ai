@@ -1,0 +1,7 @@
+{
+  "name": "EduSearch",
+  "parent": "lumo",
+  "assets": {
+    "themeFolder": "frontend/themes/edusearch"
+  }
+}

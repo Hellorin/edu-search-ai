@@ -1,5 +1,6 @@
 package io.hellorin.edusearchai;
 
+import com.vaadin.flow.theme.Theme;
 import io.hellorin.edusearchai.repository.InMemoryNotesDocumentRepository;
 import io.hellorin.edusearchai.repository.InMemoryCourseObjectivesDocumentRepository;
 import org.springframework.boot.SpringApplication;
@@ -10,6 +11,7 @@ import io.hellorin.edusearchai.service.PDFProcessingService;
 import io.hellorin.edusearchai.repository.InMemoryDocumentRepository;
 
 @SpringBootApplication
+@Theme(value = "edusearch")
 public class EduSearchAiApplication {
     public static void main(String[] args) {
         SpringApplication.run(EduSearchAiApplication.class, args);
