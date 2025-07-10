@@ -80,44 +80,5 @@ class ObjectivesControllerTest {
         verify(objectivesService, times(1)).getAvailableObjectiveDocuments();
     }
 
-    @Test
-    void generateCourseObjectivesResponse_WithValidCourseContent_ReturnsSuccessResponse() {
-        // Arrange
-        String courseContent = "This is test course content";
-        String relevantObjectivesDocs = "weekend1.pdf,weekend2.pdf";
 
-        // Act
-        ResponseEntity<String> response = objectivesController.generateCourseObjectivesResponse(courseContent, relevantObjectivesDocs);
-
-        // Assert
-        assertEquals(200, response.getStatusCode().value());
-        assertEquals("Course objectives generation endpoint - implementation pending", response.getBody());
-    }
-
-    @Test
-    void generateCourseObjectivesResponse_WithEmptyCourseContent_ReturnsBadRequest() {
-        // Arrange
-        String courseContent = "";
-        String relevantObjectivesDocs = "weekend1.pdf";
-
-        // Act
-        ResponseEntity<String> response = objectivesController.generateCourseObjectivesResponse(courseContent, relevantObjectivesDocs);
-
-        // Assert
-        assertEquals(400, response.getStatusCode().value());
-        assertEquals("Course content cannot be empty", response.getBody());
-    }
-
-    @Test
-    void generateCourseObjectivesResponse_WithNullCourseContent_ReturnsBadRequest() {
-        // Arrange
-        String relevantObjectivesDocs = "weekend1.pdf";
-
-        // Act
-        ResponseEntity<String> response = objectivesController.generateCourseObjectivesResponse(null, relevantObjectivesDocs);
-
-        // Assert
-        assertEquals(400, response.getStatusCode().value());
-        assertEquals("Course content cannot be empty", response.getBody());
-    }
 } 

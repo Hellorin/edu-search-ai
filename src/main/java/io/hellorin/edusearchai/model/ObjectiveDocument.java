@@ -1,27 +1,27 @@
 package io.hellorin.edusearchai.model;
 
-import java.util.List;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-public class Document {
+@Document(collection = "objectives")
+public class ObjectiveDocument {
+    @Id
     private String id;
     private String title;
     private String content;
-    private List<Float> embedding;
     private String source;
-    private long timestamp;
+    private Long timestamp;
 
-    public Document() {}
+    public ObjectiveDocument() {}
 
-    public Document(String id, String title, String content, List<Float> embedding, String source, long timestamp) {
+    public ObjectiveDocument(String id, String title, String content, String source, Long timestamp) {
         this.id = id;
         this.title = title;
         this.content = content;
-        this.embedding = embedding;
         this.source = source;
         this.timestamp = timestamp;
     }
 
-    // Getters and Setters
     public String getId() {
         return id;
     }
@@ -46,14 +46,6 @@ public class Document {
         this.content = content;
     }
 
-    public List<Float> getEmbedding() {
-        return embedding;
-    }
-
-    public void setEmbedding(List<Float> embedding) {
-        this.embedding = embedding;
-    }
-
     public String getSource() {
         return source;
     }
@@ -62,11 +54,11 @@ public class Document {
         this.source = source;
     }
 
-    public long getTimestamp() {
+    public Long getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(long timestamp) {
+    public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
     }
 } 

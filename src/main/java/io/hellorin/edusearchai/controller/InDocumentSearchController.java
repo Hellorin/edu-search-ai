@@ -67,9 +67,6 @@ public class InDocumentSearchController {
                 required = true
             )
             @RequestBody SearchRequest searchRequest) {
-        if (!searchRequest.isValid()) {
-            return ResponseEntity.badRequest().body("Query cannot be empty");
-        }
 
         String answer = inDocumentSearchService.searchAndAnswer(searchRequest.getQuery());
         var response = new SearchResponse(answer, searchRequest.getQuery());

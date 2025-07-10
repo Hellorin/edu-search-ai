@@ -1,7 +1,6 @@
 package io.hellorin.edusearchai.service;
 
-import io.hellorin.edusearchai.model.Document;
-import io.hellorin.edusearchai.repository.InMemoryDocumentRepository;
+import io.hellorin.edusearchai.model.DocumentChunk;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Service;
@@ -18,12 +17,9 @@ import java.util.List;
 public class PDFProcessingService {
     
     private final OpenAIEmbeddingService embeddingService;
-    private final InMemoryDocumentRepository documentRepository;
     
-    public PDFProcessingService(OpenAIEmbeddingService embeddingService,
-                              InMemoryDocumentRepository documentRepository) {
+    public PDFProcessingService(OpenAIEmbeddingService embeddingService) {
         this.embeddingService = embeddingService;
-        this.documentRepository = documentRepository;
     }
     
     /**
@@ -34,8 +30,8 @@ public class PDFProcessingService {
      * @return List of processed Document objects
      * @throws IOException if there's an error reading the PDF files
      */
-    public List<Document> processPDFs(List<MultipartFile> files) throws IOException {
-        List<Document> documents = new ArrayList<>();
+    public List<DocumentChunk> processPDFs(List<MultipartFile> files) throws IOException {
+        List<DocumentChunk> documents = new ArrayList<>();
         
         for (MultipartFile file : files) {
             // Use chunking for each file
@@ -54,18 +50,18 @@ public class PDFProcessingService {
      * @return List of processed Document objects with embeddings
      * @throws IOException if there's an error reading the PDF file
      */
-    public List<Document> processPDFWithChunks(MultipartFile file, int chunkSize) throws IOException {
+    public List<DocumentChunk> processPDFWithChunks(MultipartFile file, int chunkSize) throws IOException {
         try (PDDocument document = PDDocument.load(file.getBytes())) {
             PDFTextStripper stripper = new PDFTextStripper();
             String fullText = stripper.getText(document);
             
             // Split text into chunks
             List<String> chunks = splitIntoChunks(fullText, chunkSize);
-            List<Document> documents = new ArrayList<>();
+            List<DocumentChunk> documents = new ArrayList<>();
             
             for (int i = 0; i < chunks.size(); i++) {
                 String chunk = chunks.get(i);
-                Document doc = embeddingService.processDocument(
+                DocumentChunk doc = embeddingService.processDocument(
                     file.getOriginalFilename() + " - Chunk " + (i + 1),
                     chunk,
                         file.getOriginalFilename()
@@ -74,7 +70,7 @@ public class PDFProcessingService {
             }
             
             // Save all chunks to repository
-            return documentRepository.saveAll(documents);
+            return documents;
         }
     }
     

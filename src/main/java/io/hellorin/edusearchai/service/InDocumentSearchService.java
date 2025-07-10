@@ -1,12 +1,13 @@
 package io.hellorin.edusearchai.service;
 
-import io.hellorin.edusearchai.model.Document;
-import io.hellorin.edusearchai.repository.InMemoryDocumentRepository;
-import io.hellorin.edusearchai.repository.InMemoryNotesDocumentRepository;
+import io.hellorin.edusearchai.model.DocumentChunk;
+import io.hellorin.edusearchai.repository.CourseVectorRepository;
+import io.hellorin.edusearchai.repository.NoteVectorRepository;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.ai.document.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,27 +20,31 @@ import java.util.stream.Collectors;
 public class InDocumentSearchService {
 
     private final ChatModel chatModel;
-    private final OpenAIEmbeddingService embeddingService;
-    private final InMemoryDocumentRepository documentRepository;
-    private final InMemoryNotesDocumentRepository inMemoryNotesDocumentRepository;
+    private final CourseVectorRepository courseVectorRepository;
+    private final NoteVectorRepository noteVectorRepository;
 
     @Autowired
     public InDocumentSearchService(ChatModel chatModel,
-                                   OpenAIEmbeddingService embeddingService,
-                                   InMemoryDocumentRepository documentRepository, 
-                                   InMemoryNotesDocumentRepository inMemoryNotesDocumentRepository) {
+                                   CourseVectorRepository courseVectorRepository,
+                                   NoteVectorRepository noteVectorRepository) {
         this.chatModel = chatModel;
-        this.embeddingService = embeddingService;
-        this.documentRepository = documentRepository;
-        this.inMemoryNotesDocumentRepository = inMemoryNotesDocumentRepository;
+        this.courseVectorRepository = courseVectorRepository;
+        this.noteVectorRepository = noteVectorRepository;
     }
 
     public String searchAndAnswer(String query) {
-        // Get query embedding
-        List<Float> queryEmbedding = embeddingService.generateEmbedding(query);
-        
         // Find most relevant documents
-        List<Document> relevantDocs = documentRepository.findSimilarDocuments(queryEmbedding, 3);
+        List<Document> documents = courseVectorRepository.similaritySearch(query);
+
+        List<DocumentChunk> relevantDocs = documents.stream().map(doc -> new DocumentChunk(
+                doc.getId(),
+                (String) doc.getMetadata().get("title"),
+                doc.getText(),
+                null,
+                (String) doc.getMetadata().get("source"),
+                (Long) doc.getMetadata().get("timestamp")
+                )
+        ).toList();
         
         // Get course content response
         String courseContent = getCourseContentResponse(query, relevantDocs);
@@ -47,7 +52,15 @@ public class InDocumentSearchService {
         // Check if it's a sorry message
         if (checkIfNoSorryMessage(courseContent)) {
             // Find most relevant note documents
-            List<Document> relevantNoteDocs = inMemoryNotesDocumentRepository.findSimilarDocuments(queryEmbedding, 3);
+            List<DocumentChunk> relevantNoteDocs = noteVectorRepository.similaritySearch(query).stream().map(doc -> new DocumentChunk(
+                            doc.getId(),
+                            (String) doc.getMetadata().get("title"),
+                            doc.getText(),
+                            null,
+                            (String) doc.getMetadata().get("source"),
+                            (Long) doc.getMetadata().get("timestamp")
+                    )
+            ).toList();
             
             // Get sidenotes response
             String sidenotesContent = getSidenotesResponse(courseContent, relevantNoteDocs);
@@ -60,7 +73,7 @@ public class InDocumentSearchService {
         }
     }
 
-    private String getCourseContentResponse(String query, List<Document> relevantDocs) {
+    private String getCourseContentResponse(String query, List<DocumentChunk> relevantDocs) {
         String context = relevantDocs.stream()
                 .map(doc -> String.format("Title: %s%nSource: %s%nContent: %s",
                     doc.getTitle(), doc.getSource(), doc.getContent()))
@@ -107,7 +120,7 @@ public class InDocumentSearchService {
         return response.map(r -> !r.contains("<SORRY>")).orElse(false);
     }
 
-    private String getSidenotesResponse(String courseContent, List<Document> relevantNoteDocs) {
+    private String getSidenotesResponse(String courseContent, List<DocumentChunk> relevantNoteDocs) {
         String sidenotes = relevantNoteDocs.stream()
                 .map(doc -> String.format("Title: %s%nSource: %s%nContent: %s",
                         doc.getTitle(), doc.getSource(), doc.getContent()))

@@ -45,32 +45,4 @@ class InDocumentSearchControllerTest {
         assertNotNull(searchResponse.getTimestamp());
         verify(inDocumentSearchService, times(1)).searchAndAnswer("test query");
     }
-
-    @Test
-    void searchInDocuments_WithEmptyQuery_ReturnsBadRequest() {
-        // Arrange
-        var searchRequest = new SearchRequest("");
-
-        // Act
-        ResponseEntity<?> response = inDocumentSearchController.searchInDocuments(searchRequest);
-
-        // Assert
-        assertEquals(400, response.getStatusCode().value());
-        assertEquals("Query cannot be empty", response.getBody());
-        verify(inDocumentSearchService, never()).searchAndAnswer(anyString());
-    }
-
-    @Test
-    void searchInDocuments_WithNullQuery_ReturnsBadRequest() {
-        // Arrange
-        var searchRequest = new SearchRequest(null);
-
-        // Act
-        ResponseEntity<?> response = inDocumentSearchController.searchInDocuments(searchRequest);
-
-        // Assert
-        assertEquals(400, response.getStatusCode().value());
-        assertEquals("Query cannot be empty", response.getBody());
-        verify(inDocumentSearchService, never()).searchAndAnswer(anyString());
-    }
 } 

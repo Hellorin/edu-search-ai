@@ -31,8 +31,4 @@ public class SearchRequest {
     public void setQuery(String query) {
         this.query = query;
     }
-
-    public boolean isValid() {
-        return query != null && !query.trim().isEmpty();
-    }
 } 

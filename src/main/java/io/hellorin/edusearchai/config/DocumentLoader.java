@@ -1,20 +1,25 @@
 package io.hellorin.edusearchai.config;
 
-import io.hellorin.edusearchai.repository.InMemoryNotesDocumentRepository;
-import io.hellorin.edusearchai.repository.InMemoryCourseObjectivesDocumentRepository;
+import io.hellorin.edusearchai.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.mock.web.MockMultipartFile;
 import io.hellorin.edusearchai.service.PDFProcessingService;
-import io.hellorin.edusearchai.repository.InMemoryDocumentRepository;
-import io.hellorin.edusearchai.model.Document;
+import io.hellorin.edusearchai.service.ObjectiveExtractionService;
+import io.hellorin.edusearchai.model.DocumentChunk;
+import io.hellorin.edusearchai.model.ObjectiveDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -30,22 +35,31 @@ import org.apache.pdfbox.text.PDFTextStripper;
  *     <li>Storing the processed documents in the appropriate document repository</li>
  * </ul>
  */
+@Component
 public class DocumentLoader implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(DocumentLoader.class);
+
+    @Autowired
+    private Environment env;
+
     private final PDFProcessingService pdfProcessingService;
-    private final InMemoryDocumentRepository inMemoryDocumentRepository;
-    private final InMemoryNotesDocumentRepository inMemoryNotesDocumentRepository;
-    private final InMemoryCourseObjectivesDocumentRepository inMemoryCourseObjectivesDocumentRepository;
+    private final ObjectiveExtractionService objectiveExtractionService;
+
+    private final CourseVectorRepository courseVectorRepository;
+    private final NoteVectorRepository noteVectorRepository;
+    private final ObjectiveDocumentRepository objectiveDocumentRepository;
+
     private final ResourcePatternResolver resolver;
 
-    public DocumentLoader(PDFProcessingService pdfProcessingService, 
-                          InMemoryDocumentRepository inMemoryDocumentRepository,
-                          InMemoryNotesDocumentRepository inMemoryNotesDocumentRepository,
-                          InMemoryCourseObjectivesDocumentRepository inMemoryCourseObjectivesDocumentRepository) {
+    public DocumentLoader(PDFProcessingService pdfProcessingService,
+                          ObjectiveExtractionService objectiveExtractionService,
+                          CourseVectorRepository courseVectorRepository, NoteVectorRepository noteVectorRepository,
+                          ObjectiveDocumentRepository objectiveDocumentRepository) {
         this.pdfProcessingService = pdfProcessingService;
-        this.inMemoryDocumentRepository = inMemoryDocumentRepository;
-        this.inMemoryNotesDocumentRepository = inMemoryNotesDocumentRepository;
-        this.inMemoryCourseObjectivesDocumentRepository = inMemoryCourseObjectivesDocumentRepository;
+        this.objectiveExtractionService = objectiveExtractionService;
+        this.courseVectorRepository = courseVectorRepository;
+        this.noteVectorRepository = noteVectorRepository;
+        this.objectiveDocumentRepository = objectiveDocumentRepository;
         this.resolver = new PathMatchingResourcePatternResolver();
     }
 
@@ -56,7 +70,7 @@ public class DocumentLoader implements CommandLineRunner {
      * @return List of processed Document objects
      * @throws IOException if there are issues reading the files
      */
-    List<Document> loadFolder(String folderPath) throws IOException {
+    List<DocumentChunk> loadFolder(String folderPath) throws IOException {
         Resource[] resources = resolver.getResources("classpath:" + folderPath + "/*.pdf");
         List<MultipartFile> files = new ArrayList<>();
         
@@ -73,14 +87,14 @@ public class DocumentLoader implements CommandLineRunner {
                 files.add(file);
             }
         }
-        
+
         if (!files.isEmpty()) {
             logger.info("Loading {} PDF documents from {}...", files.size(), folderPath);
-            List<Document> processedDocs = pdfProcessingService.processPDFs(files);
+            List<DocumentChunk> processedDocs = pdfProcessingService.processPDFs(files);
             logger.info("Documents loaded successfully from {}!", folderPath);
             
             // Print document information
-            for (Document doc : processedDocs) {
+            for (DocumentChunk doc : processedDocs) {
                 logger.info("Loaded document: {} (ID: {})", doc.getSource(), doc.getId());
             }
             return processedDocs;
@@ -91,17 +105,17 @@ public class DocumentLoader implements CommandLineRunner {
     }
 
     /**
-     * Loads objectives as strings without computing embeddings.
-     * This method extracts text from PDF files and creates Document objects
-     * with null embeddings for objectives.
+     * Loads objectives and extracts individual learning objectives using LLM.
+     * This method extracts text from PDF files, uses AI to identify individual objectives,
+     * and creates separate ObjectiveDocument objects for each objective.
      *
      * @param folderPath The path to the folder containing objective PDF documents
-     * @return List of Document objects with text content but no embeddings
+     * @return List of ObjectiveDocument objects, one for each extracted objective
      * @throws IOException if there are issues reading the files
      */
-    List<Document> loadObjectivesAsStrings(String folderPath) throws IOException {
+    List<ObjectiveDocument> loadObjectivesAsStrings(String folderPath) throws IOException {
         Resource[] resources = resolver.getResources("classpath:" + folderPath + "/*.pdf");
-        List<Document> documents = new ArrayList<>();
+        List<ObjectiveDocument> allObjectives = new ArrayList<>();
         
         for (Resource resource : resources) {
             String filename = resource.getFilename();
@@ -110,27 +124,22 @@ public class DocumentLoader implements CommandLineRunner {
                     PDFTextStripper stripper = new PDFTextStripper();
                     String fullText = stripper.getText(document);
                     
-                    Document doc = new Document();
-                    doc.setId(UUID.randomUUID().toString());
-                    doc.setTitle(filename);
-                    doc.setContent(fullText);
-                    doc.setEmbedding(null); // No embeddings for objectives
-                    doc.setSource(filename);
-                    doc.setTimestamp(System.currentTimeMillis());
+                    // Use LLM to extract individual objectives from the full text
+                    List<ObjectiveDocument> extractedObjectives = objectiveExtractionService.extractObjectives(fullText, filename);
+                    allObjectives.addAll(extractedObjectives);
                     
-                    documents.add(doc);
-                    logger.info("Loaded objective as string: {} (ID: {})", filename, doc.getId());
+                    logger.info("Extracted {} objectives from {}", extractedObjectives.size(), filename);
                 }
             }
         }
         
-        if (!documents.isEmpty()) {
-            logger.info("Loaded {} objective documents as strings from {}!", documents.size(), folderPath);
+        if (!allObjectives.isEmpty()) {
+            logger.info("Extracted {} total objectives from {}!", allObjectives.size(), folderPath);
         } else {
-            logger.info("No objective PDF documents found in {} folder.", folderPath);
+            logger.info("No objectives extracted from {} folder.", folderPath);
         }
         
-        return documents;
+        return allObjectives;
     }
 
     /**
@@ -144,37 +153,41 @@ public class DocumentLoader implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         try {
-            // Load public and courses documents
-            List<String> standardFolders = List.of("documents/public", "documents/courses");
-            List<Document> standardDocs = new ArrayList<>();
-            
-            for (String folder : standardFolders) {
-                List<Document> folderDocs = loadFolder(folder);
-                standardDocs.addAll(folderDocs);
+            if (Arrays.asList(env.getActiveProfiles()).contains("loading")) {
+                // Load public and courses documents
+                List<String> standardFolders = List.of("documents/public", "documents/courses");
+                List<DocumentChunk> standardDocs = new ArrayList<>();
+
+                courseVectorRepository.clearVectors();
+                for (String folder : standardFolders) {
+                    List<DocumentChunk> folderDocs = loadFolder(folder);
+                    standardDocs.addAll(folderDocs);
+                    courseVectorRepository.addAll(folderDocs);
+                }
+
+                // Load notes documents
+                noteVectorRepository.clearVectors();
+                List<DocumentChunk> notesDocs = loadFolder("documents/notes");
+                noteVectorRepository.addAll(notesDocs);
+
+                // Clean up all objectives before loading new ones
+                objectiveDocumentRepository.deleteAll();
+
+                // Load course objectives documents and extract individual objectives using LLM
+                List<ObjectiveDocument> courseObjectivesDocs = loadObjectivesAsStrings("documents/objectives");
+
+                // Save documents to appropriate repositories
+                if (!courseObjectivesDocs.isEmpty()) {
+                    objectiveDocumentRepository.saveAll(courseObjectivesDocs);
+                }
+
+                // Print repository status
+                logger.info("\nRepository Status:");
+                logger.info("Total standard documents: {}", standardDocs.size());
+                logger.info("Total notes documents: {}", notesDocs.size());
+                logger.info("Total extracted objectives: {}", courseObjectivesDocs.size());
+                logger.info("Total objectives in repository: {}", objectiveDocumentRepository.count());
             }
-            
-            // Load notes documents
-            List<Document> notesDocs = loadFolder("documents/notes");
-            
-            // Load course objectives documents as strings (without embeddings)
-            List<Document> courseObjectivesDocs = loadObjectivesAsStrings("documents/objectives");
-            
-            // Save documents to appropriate repositories
-            if (!standardDocs.isEmpty()) {
-                inMemoryDocumentRepository.saveAll(standardDocs);
-            }
-            if (!notesDocs.isEmpty()) {
-                inMemoryNotesDocumentRepository.saveAll(notesDocs);
-            }
-            if (!courseObjectivesDocs.isEmpty()) {
-                inMemoryCourseObjectivesDocumentRepository.saveAll(courseObjectivesDocs);
-            }
-            
-            // Print repository status
-            logger.info("\nRepository Status:");
-            logger.info("Total standard documents: {}", inMemoryDocumentRepository.size());
-            logger.info("Total notes documents: {}", inMemoryNotesDocumentRepository.size());
-            logger.info("Total course objectives documents: {}", inMemoryCourseObjectivesDocumentRepository.size());
             
         } catch (Exception e) {
             logger.error("Error in document loading process: {}", e.getMessage(), e);

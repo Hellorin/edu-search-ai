@@ -1,6 +1,6 @@
 package io.hellorin.edusearchai.service;
 
-import io.hellorin.edusearchai.model.Document;
+import io.hellorin.edusearchai.model.DocumentChunk;
 import org.springframework.ai.embedding.EmbeddingRequest;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,12 +44,11 @@ public class OpenAIEmbeddingService {
      * @param source The source of the document
      * @return A new Document instance with generated embedding and metadata
      */
-    public Document processDocument(String title, String content, String source) {
-        Document document = new Document();
+    public DocumentChunk processDocument(String title, String content, String source) {
+        DocumentChunk document = new DocumentChunk();
         document.setId(UUID.randomUUID().toString());
         document.setTitle(title);
         document.setContent(content);
-        document.setEmbedding(generateEmbedding(content));
         document.setSource(source);
         document.setTimestamp(System.currentTimeMillis());
         return document;

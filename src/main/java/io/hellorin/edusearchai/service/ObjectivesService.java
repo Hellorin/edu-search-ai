@@ -1,13 +1,13 @@
 package io.hellorin.edusearchai.service;
 
-import io.hellorin.edusearchai.model.Document;
-import io.hellorin.edusearchai.repository.InMemoryCourseObjectivesDocumentRepository;
-import io.hellorin.edusearchai.repository.InMemoryDocumentRepository;
+import io.hellorin.edusearchai.model.DocumentChunk;
+import io.hellorin.edusearchai.model.ObjectiveDocument;
+import io.hellorin.edusearchai.repository.CourseVectorRepository;
+import io.hellorin.edusearchai.repository.ObjectiveDocumentRepository;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,19 +19,15 @@ import java.util.ArrayList;
 public class ObjectivesService {
 
     private final ChatModel chatModel;
-    private final OpenAIEmbeddingService embeddingService;
-    private final InMemoryCourseObjectivesDocumentRepository inMemoryCourseObjectivesDocumentRepository;
-    private final InMemoryDocumentRepository documentRepository;
+    private final ObjectiveDocumentRepository objectiveDocumentRepository;
+    private final CourseVectorRepository courseVectorRepository;
 
-    @Autowired
     public ObjectivesService(ChatModel chatModel,
-                           OpenAIEmbeddingService embeddingService,
-                           InMemoryCourseObjectivesDocumentRepository inMemoryCourseObjectivesDocumentRepository,
-                           InMemoryDocumentRepository documentRepository) {
+                             ObjectiveDocumentRepository objectiveDocumentRepository,
+                             CourseVectorRepository courseVectorRepository) {
         this.chatModel = chatModel;
-        this.embeddingService = embeddingService;
-        this.inMemoryCourseObjectivesDocumentRepository = inMemoryCourseObjectivesDocumentRepository;
-        this.documentRepository = documentRepository;
+        this.objectiveDocumentRepository = objectiveDocumentRepository;
+        this.courseVectorRepository = courseVectorRepository;
     }
 
     /**
@@ -42,44 +38,40 @@ public class ObjectivesService {
      */
     public String searchObjectivesAgainstCourses(String objectiveDocumentName) {
         // Find the objective document by name
-        var objectiveDoc = inMemoryCourseObjectivesDocumentRepository.getDocumentsById().values().stream()
-                .filter(doc -> doc.getSource().equalsIgnoreCase(objectiveDocumentName) || 
-                              doc.getTitle().equalsIgnoreCase(objectiveDocumentName))
-                .findFirst()
-                .orElse(null);
+        var objectiveDocs = objectiveDocumentRepository.findBySource(objectiveDocumentName);
 
-        if (objectiveDoc == null) {
+        if (objectiveDocs.isEmpty()) {
             return "Objective document '" + objectiveDocumentName + "' not found.";
-        }
-        
-
-        // Parse objectives into individual points
-        var objectivePoints = parseObjectivePoints(objectiveDoc.getContent());
-        
-        if (objectivePoints.isEmpty()) {
-            return "No objective points found in document '" + objectiveDocumentName + "'.";
         }
 
         // For each objective point, perform vector search and generate an answer
         var results = new StringBuilder();
+
         results.append("Answers for Objectives in: ").append(objectiveDocumentName).append("\n\n");
 
-        for (int i = 0; i < objectivePoints.size(); i++) {
-            var objectivePoint = objectivePoints.get(i);
-            results.append("=== Objective Point ").append(i + 1).append(" ===\n");
-            results.append("Objective: ").append(objectivePoint).append("\n\n");
+        // Parse objectives into individual points
+        for (var objectiveDoc: objectiveDocs) {
+            var objectivePoints = parseObjectivePoints(objectiveDoc.getContent());
 
-            // Generate embedding for the objective point
-            var objectiveEmbedding = embeddingService.generateEmbedding(objectivePoint);
-            
-            // Find similar course documents
-            var relevantCourseDocs = documentRepository.findSimilarDocuments(objectiveEmbedding, 5);
-            
+            if (objectivePoints.isEmpty()) {
+                return "No objective points found in document '" + objectiveDocumentName + "'.";
+            }
+
+            var relevantCourseDocs = courseVectorRepository.similaritySearch(objectiveDoc.getContent()).stream().map(doc -> new DocumentChunk(
+                            doc.getId(),
+                            (String) doc.getMetadata().get("title"),
+                            doc.getText(),
+                            null,
+                            (String) doc.getMetadata().get("source"),
+                            (Long) doc.getMetadata().get("timestamp")
+                    )
+            ).toList();
+
             if (relevantCourseDocs.isEmpty()) {
                 results.append("No relevant course content found for this objective.\n\n");
             } else {
                 // Generate an answer based on the relevant course content
-                var answer = generateAnswerForObjective(objectivePoint, relevantCourseDocs);
+                var answer = generateAnswerForObjective(objectiveDoc.getContent(), relevantCourseDocs);
                 results.append("Answer: ").append(answer).append("\n\n");
             }
             results.append("\n");
@@ -95,7 +87,7 @@ public class ObjectivesService {
      * @param relevantDocs The relevant course documents found through vector search
      * @return A generated answer based on the course content
      */
-    private String generateAnswerForObjective(String objectivePoint, List<Document> relevantDocs) {
+    private String generateAnswerForObjective(String objectivePoint, List<DocumentChunk> relevantDocs) {
         String context = relevantDocs.stream()
                 .map(doc -> String.format("Title: %s%nSource: %s%nContent: %s",
                     doc.getTitle(), doc.getSource(), doc.getContent()))
@@ -243,7 +235,7 @@ public class ObjectivesService {
      * @return A formatted string containing all available objective document names
      */
     public String getAvailableObjectiveDocuments() {
-        var documents = inMemoryCourseObjectivesDocumentRepository.getDocumentsById().values();
+        var documents = objectiveDocumentRepository.findAll();
         
         if (documents.isEmpty()) {
             return "No objective documents available.";
