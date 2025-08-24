@@ -167,8 +167,8 @@ public class DocumentLoader implements CommandLineRunner {
 
                 // Load notes documents
                 noteVectorRepository.clearVectors();
-                List<DocumentChunk> notesDocs = loadFolder("documents/notes");
-                noteVectorRepository.addAll(notesDocs);
+                //List<DocumentChunk> notesDocs = loadFolder("documents/notes");
+                //noteVectorRepository.addAll(notesDocs);
 
                 // Clean up all objectives before loading new ones
                 objectiveDocumentRepository.deleteAll();
@@ -184,7 +184,7 @@ public class DocumentLoader implements CommandLineRunner {
                 // Print repository status
                 logger.info("\nRepository Status:");
                 logger.info("Total standard documents: {}", standardDocs.size());
-                logger.info("Total notes documents: {}", notesDocs.size());
+                //logger.info("Total notes documents: {}", notesDocs.size());
                 logger.info("Total extracted objectives: {}", courseObjectivesDocs.size());
                 logger.info("Total objectives in repository: {}", objectiveDocumentRepository.count());
             }

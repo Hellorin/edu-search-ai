@@ -8,19 +8,18 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
+/**
+ * Configuration class for setting up vector stores using MongoDB Atlas.
+ * This configuration creates separate vector stores for courses and notes.
+ */
 @Configuration
 public class VectorStoreConfig {
 
     private final String courseCollectionName;
-
     private final String courseIndexName;
-
     private final String coursePath;
-
     private final String noteCollectionName;
-
     private final String noteIndexName;
-
     private final String notePath;
 
     public VectorStoreConfig(
@@ -38,6 +37,13 @@ public class VectorStoreConfig {
         this.notePath = notePath;
     }
 
+    /**
+     * Creates a vector store for course documents using MongoDB Atlas.
+     *
+     * @param mongoTemplate The MongoDB template for database operations
+     * @param embeddingModel The embedding model to use for vector operations
+     * @return Configured vector store for courses
+     */
     @Bean
     public VectorStore courseVectorStore(MongoTemplate mongoTemplate, EmbeddingModel embeddingModel) {
         return MongoDBAtlasVectorStore.builder(mongoTemplate, embeddingModel)
@@ -48,6 +54,13 @@ public class VectorStoreConfig {
                 .build();
     }
 
+    /**
+     * Creates a vector store for note documents using MongoDB Atlas.
+     *
+     * @param mongoTemplate The MongoDB template for database operations
+     * @param embeddingModel The embedding model to use for vector operations
+     * @return Configured vector store for notes
+     */
     @Bean
     public VectorStore noteVectorStore(MongoTemplate mongoTemplate, EmbeddingModel embeddingModel) {
         return MongoDBAtlasVectorStore.builder(mongoTemplate, embeddingModel)
@@ -57,6 +70,4 @@ public class VectorStoreConfig {
                 .initializeSchema(false)
                 .build();
     }
-
-
 }

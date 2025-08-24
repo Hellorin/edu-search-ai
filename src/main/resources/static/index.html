@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduSearch AI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            color: #555;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .loading {
+            color: #007bff;
+            font-style: italic;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .objective-list {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 EduSearch AI</h1>
+        
+        <!-- Document Search Section -->
+        <div class="section">
+            <h2>📚 Search Documents</h2>
+            <p>Ask questions about your educational documents and get AI-powered answers.</p>
+            <textarea id="searchQuery" placeholder="Enter your question here... (e.g., What are the main nutritional recommendations?)"></textarea>
+            <button onclick="searchDocuments()" id="searchBtn">🔍 Search</button>
+            <div id="searchResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Objectives Search Section -->
+        <div class="section">
+            <h2>🎯 Answer Objectives with the course materials</h2>
+            <div style="margin-top: 20px;">
+                <input type="text" id="objectiveName" placeholder="Enter objective document name (e.g., weekend1.pdf)">
+                <button onclick="searchObjectives()" id="objSearchBtn">🎯 Search Objectives</button>
+                <div id="objectivesResult" class="result" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Search documents function
+        async function searchDocuments() {
+            const query = document.getElementById('searchQuery').value.trim();
+            if (!query) {
+                alert('Please enter a search query');
+                return;
+            }
+
+            const searchBtn = document.getElementById('searchBtn');
+            const resultDiv = document.getElementById('searchResult');
+            
+            searchBtn.disabled = true;
+            searchBtn.textContent = '🔍 Searching...';
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = 'Searching documents...';
+
+            try {
+                const response = await fetch('/api/search/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `Question: ${data.query}\n\nAnswer: ${data.answer}`;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `Error: ${errorText}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `Network error: ${error.message}`;
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.textContent = '🔍 Search';
+            }
+        }
+
+        // Load available objectives function
+        async function loadObjectives() {
+            const loadBtn = document.getElementById('loadBtn');
+            const listDiv = document.getElementById('objectivesList');
+            
+            loadBtn.disabled = true;
+            loadBtn.textContent = '📋 Loading...';
+            listDiv.style.display = 'block';
+            listDiv.textContent = 'Loading available objectives...';
+
+            try {
+                const response = await fetch('/api/objectives/list');
+                if (response.ok) {
+                    const data = await response.text();
+                    listDiv.textContent = data;
+                } else {
+                    listDiv.textContent = 'Error loading objectives';
+                }
+            } catch (error) {
+                listDiv.textContent = `Network error: ${error.message}`;
+            } finally {
+                loadBtn.disabled = false;
+                loadBtn.textContent = '📋 Load Available Objectives';
+            }
+        }
+
+        // Search objectives function
+        async function searchObjectives() {
+            const objectiveName = document.getElementById('objectiveName').value.trim();
+            if (!objectiveName) {
+                alert('Please enter an objective document name');
+                return;
+            }
+
+            const searchBtn = document.getElementById('objSearchBtn');
+            const resultDiv = document.getElementById('objectivesResult');
+            
+            searchBtn.disabled = true;
+            searchBtn.textContent = '🎯 Searching...';
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = 'Searching objectives against courses...';
+
+            try {
+                const response = await fetch('/api/objectives/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                    },
+                    body: objectiveName
+                });
+
+                if (response.ok) {
+                    const data = await response.text();
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = data;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `Error: ${errorText}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `Network error: ${error.message}`;
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.textContent = '🎯 Search Objectives';
+            }
+        }
+
+        // Allow Enter key to submit search
+        document.getElementById('searchQuery').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                searchDocuments();
+            }
+        });
+
+        document.getElementById('objectiveName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchObjectives();
+            }
+        });
+    </script>
+</body>
+</html>

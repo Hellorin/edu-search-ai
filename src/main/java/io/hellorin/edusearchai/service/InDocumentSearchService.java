@@ -63,11 +63,11 @@ public class InDocumentSearchService {
             ).toList();
             
             // Get sidenotes response
-            String sidenotesContent = getSidenotesResponse(courseContent, relevantNoteDocs);
+            //String sidenotesContent = getSidenotesResponse(courseContent, relevantNoteDocs);
             
-            String combinedResponse = courseContent + "\n\n" + sidenotesContent;
+            //String combinedResponse = courseContent + "\n\n" + sidenotesContent;
             
-            return combinedResponse;
+            return courseContent;
         } else {
             return courseContent;
         }

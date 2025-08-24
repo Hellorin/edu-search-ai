@@ -13,12 +13,15 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Repository for managing note document vectors using MongoDB Atlas.
+ * This repository handles adding, clearing, and searching note document chunks.
+ */
 @Repository
 public class NoteVectorRepository {
+    
     private final MongoTemplate mongoTemplate;
-
     private final VectorStore vectorStore;
-
     private final String collectionName;
 
     public NoteVectorRepository(MongoTemplate mongoTemplate, @Qualifier("noteVectorStore") VectorStore vectorStore,
@@ -28,11 +31,16 @@ public class NoteVectorRepository {
         this.collectionName = collectionName;
     }
 
+    /**
+     * Adds all document chunks to the vector store.
+     *
+     * @param documentChunk List of document chunks to add
+     */
     public void addAll(List<DocumentChunk> documentChunk) {
         vectorStore.add(
                 documentChunk.stream()
                         .map(it ->
-                                new org.springframework.ai.document.Document(
+                                new Document(
                                         it.getContent(),
                                         Map.of(
                                                 "title", it.getTitle(),
@@ -43,6 +51,11 @@ public class NoteVectorRepository {
                         ).toList());
     }
 
+    /**
+     * Clears all vectors from the vector store.
+     *
+     * @throws RuntimeException if clearing fails
+     */
     public void clearVectors() {
         try {
             mongoTemplate.remove(new Query(), collectionName);
@@ -51,6 +64,12 @@ public class NoteVectorRepository {
         }
     }
 
+    /**
+     * Performs similarity search on the vector store.
+     *
+     * @param query The search query
+     * @return List of similar documents
+     */
     public List<Document> similaritySearch(String query) {
         return vectorStore.similaritySearch(SearchRequest.builder().query(query).topK(3).build());
     }
